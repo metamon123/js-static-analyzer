@@ -19,23 +19,20 @@ struct Args {
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    let source_code = fs::read_to_string(&args.file)?;
-
-    let ast = parse_javascript(&source_code, &args.file)?;
+    let ast = parse_javascript(&args.file)?;
 
     analyze_ast(&ast);
 
     Ok(())
 }
 
-fn parse_javascript(source_code: &str, file_path: &PathBuf) -> Result<Module> {
+fn parse_javascript(file_path: &PathBuf) -> Result<Module> {
+    let source_code = fs::read_to_string(file_path)?;
+
     let cm: Lrc<SourceMap> = Default::default();
     let handler = Handler::with_emitter_writer(Box::new(std::io::stderr()), Some(cm.clone()));
 
-    let fm = cm.new_source_file(
-        FileName::Real(file_path.clone()).into(),
-        source_code.to_string(),
-    );
+    let fm = cm.new_source_file(FileName::Real(file_path.clone()).into(), source_code);
 
     let lexer = Lexer::new(
         Syntax::Es(Default::default()),
