@@ -56,6 +56,20 @@ fn analyze_ast(module: &Module) {
     println!("JavaScript AST Analysis:");
     println!("========================");
 
+    let counts = count_top_level_items(module);
+
+    println!("Functions: {}", counts.functions);
+    println!("Variables: {}", counts.variables);
+    println!("Imports: {}", counts.imports);
+}
+
+struct AnalysisCounts {
+    functions: usize,
+    variables: usize,
+    imports: usize,
+}
+
+fn count_top_level_items(module: &Module) -> AnalysisCounts {
     let mut function_count = 0;
     let mut var_count = 0;
     let mut import_count = 0;
@@ -78,7 +92,39 @@ fn analyze_ast(module: &Module) {
         }
     }
 
-    println!("Functions: {}", function_count);
-    println!("Variables: {}", var_count);
-    println!("Imports: {}", import_count);
+    AnalysisCounts {
+        functions: function_count,
+        variables: var_count,
+        imports: import_count,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{count_top_level_items, parse_javascript};
+    use std::io::Write;
+
+    #[test]
+    fn counts_functions_variables_imports() {
+        let source = r#"
+function greet(name) {
+    const message = "Hello, " + name + "!";
+    console.log(message);
+}
+
+let counter = 0;
+const PI = 3.14159;
+
+import { utils } from './utils.js';
+"#;
+        let mut file = tempfile::NamedTempFile::new().expect("create temp file");
+        file.write_all(source.as_bytes())
+            .expect("write test source");
+        let module = parse_javascript(&file.path().to_path_buf()).expect("parse test source");
+        let counts = count_top_level_items(&module);
+
+        assert_eq!(counts.functions, 1);
+        assert_eq!(counts.variables, 2);
+        assert_eq!(counts.imports, 1);
+    }
 }
